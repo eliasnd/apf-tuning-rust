@@ -3,6 +3,10 @@ use std::vec::Vec;
 
 use crate::trace::Event::*;
 
+/*
+    Event represents allocation or free operation
+    usize stores heap slot -- not sure how helpful this will be in practice, so might make it generic
+*/
 #[derive(Copy, Clone)]
 pub enum Event {
     Alloc(usize),
@@ -14,6 +18,11 @@ pub struct Trace {
     length: usize,
 }
 
+
+/*
+    Memory trace
+    Simple wrapper for vector of events
+*/
 impl Trace {
     pub fn new() -> Trace {
         Trace {
@@ -35,6 +44,7 @@ impl Trace {
         self.accesses[index]
     }
 
+    // Counts objects referenced in trace
     pub fn object_count(&self) -> usize {   // This is dumb
         let mut seen = HashMap::new();
 
@@ -49,15 +59,21 @@ impl Trace {
         seen.len()
     }
 
-    pub fn sub(&self, start: usize, end: usize) -> Trace {
+    // Generates a subtrace from start to end, excluding end
+    // Returns None if indices not valid
+    pub fn subtrace(&self, start: usize, end: usize) -> Option<Trace> {
+        if start > end { return None; }
+        if end > self.length() { return None; }
+
         let mut t = Trace::new();
         for i in start..end {
             t.add(self.get(i));
         }
-        t
+        Some(t)
     }
 }
 
+// Converts trace to vector of free intervals represented (si, ei)
 pub fn trace_to_free_intervals(t: &Trace) -> Vec<(usize, usize)> {
     let mut allocs = HashMap::<usize, usize>::new();
     let mut result = Vec::new();
