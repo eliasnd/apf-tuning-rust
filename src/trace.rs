@@ -1,5 +1,7 @@
-use crate::trace::Event::*;
 use std::collections::HashMap;
+use std::vec::Vec;
+
+use crate::trace::Event::*;
 
 #[derive(Copy, Clone)]
 pub enum Event {
@@ -54,4 +56,18 @@ impl Trace {
         }
         t
     }
+}
+
+pub fn trace_to_free_intervals(t: &Trace) -> Vec<(usize, usize)> {
+    let mut allocs = HashMap::<usize, usize>::new();
+    let mut result = Vec::new();
+
+    for i in 0..t.length() {
+        match t.get(i) {
+            Alloc(s) => { allocs.insert(s.clone(), i); },
+            Free(s) => { result.push((*allocs.get(&s).expect("Free before alloc"), i)); }   // Should format error to include index
+        }
+    }
+
+    result
 }

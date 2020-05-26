@@ -1,4 +1,6 @@
 use std::vec::Vec;
+use std::cmp::min;
+use std::cmp::max;
 
 use crate::trace::*;
 use crate::histogram::Histogram;
@@ -116,18 +118,61 @@ impl ReuseCounter {
 // Offline functions
 
 // Reuse calculates all k and returns histogram indexed by k
+// Note: Returns histogram is NOT RI or RD Histogram
 fn reuse(t: Trace) -> Histogram {
-	let result = Histogram::new();
+	let intervals = trace_to_free_intervals(&t);
 	let n = t.length();
-	let m = t.object_count();
 
-	let x = vec![0; n];
-	let y = vec![0; n];
-	let z = vec![0; n];
+	let mut x = vec![0; n];	// X(i) = x[i-1]
+	let mut y = vec![0; n];	// Y(i) = y[i-1]
+	let mut z = vec![0; n];	// Z(i) = z[i-1]
 
-	for k in 0..t.length() {
-
+	// Base Case -- construct X(1), Y(1), Z(1)
+	let (mut x0, mut y0, mut z0) = (0, 0, 0);
+	
+	for i in 0..intervals.len() {
+		let interval = *intervals.get(i).unwrap();	// Safe since only looping over range
+		if interval.1 - interval.0 == 1 { 
+			x0 += interval.0; 
+			y0 += interval.1;
+			z0 += 2;
+		}
 	}
+
+	x[0] = x0;
+	y[0] = y0;
+	z[0] = z0;
+
+	// Recursive Case
+	for i in 1..t.length() {
+		let k = i+1;
+		let (mut xk, mut yk, mut zk) = (0, 0, 0);	// These represent values to be added to previous index
+
+		for i in 0..intervals.len() {
+			let interval = *intervals.get(i).unwrap();
+
+			// X(k)
+			if interval.0 >= n-(k-1) { xk -= 1; }
+			if interval.1 - interval.0 == k { xk += min(n-k, interval.0); }
+
+			// Y(k)
+			if interval.1 <= k-1 { yk += 1; }
+			if interval.1 - interval.0 == k { yk += max(k, interval.1); }	// Redoing conditional for readability for now
+
+			// Z(k)
+			if interval.1 - interval.0 <= k { zk += 1; }
+			if interval.1 - interval.0 == k { zk += k; }
+		}
+
+		x[i] = xk;
+		y[i] = yk;
+		z[i] = zk;
+	}
+
+	// Construct histogram
+	let mut result = Histogram::new();
+
+	for k in 1..n+1 { result.add(k, (x[k-1] + y[k-1] + z[k-1]) / (n-k+1)); }
 
 	result
 }
