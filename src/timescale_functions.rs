@@ -62,7 +62,7 @@ pub struct ReuseCounter {
 	hibernation_period: usize,	// Length of hibernation
 	n: usize,					// Current time counter
 	trace: Option<Trace>,		// Optional current trace -- none if hibernating	
-	reuse: usize				// Last calculated reuse -- 0 if not initialized (?)
+	reuse: Option<Histogram>	// Last calculated reuse -- none if not initialized (?)
 }
 
 impl ReuseCounter {
@@ -72,7 +72,7 @@ impl ReuseCounter {
 			hibernation_period: hp,
 			n: 0,
 			trace: Some(Trace::new()),	// Start sampling or hibernating?
-			reuse: 0
+			reuse: None
 		}
 	}
 
@@ -97,20 +97,27 @@ impl ReuseCounter {
 
 	pub fn inc_timer(&mut self) -> () {
 		self.n += 1;
-		match &self.trace.is_some() {
-			true => {
+		match &self.trace {
+			Some(trace) => {
 				if self.n > self.burst_length {
+					self.reuse = Some(reuse(trace));
 					self.n = 0;
 					self.trace = None;
-					// Calculate reuse
 				}
 			}
-			false => {
+			None => {
 				if self.n > self.hibernation_period {
 					self.n = 0;
 					self.trace = Some(Trace::new());
 				}
 			}
+		}
+	}
+
+	pub fn reuse(&self, k: usize) -> Option<usize> {
+		match &self.reuse {
+			Some(reuse) => Some(reuse.get(&k)),
+			None => None
 		}
 	}
 }
@@ -119,8 +126,8 @@ impl ReuseCounter {
 
 // Reuse calculates all k and returns histogram indexed by k
 // Note: Returns histogram is NOT RI or RD Histogram
-fn reuse(t: Trace) -> Histogram {
-	let intervals = trace_to_free_intervals(&t);
+fn reuse(t: &Trace) -> Histogram {
+	let intervals = trace_to_free_intervals(t);
 	let n = t.length();
 
 	let mut x = vec![0; n];	// X(i) = x[i-1]
