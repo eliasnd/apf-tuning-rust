@@ -1,3 +1,5 @@
+use std::vec::Vec;
+
 use crate::trace::*;
 use crate::histogram::Histogram;
 
@@ -116,9 +118,15 @@ impl ReuseCounter {
 // Reuse calculates all k and returns histogram indexed by k
 fn reuse(t: Trace) -> Histogram {
 	let result = Histogram::new();
+	let n = t.length();
+	let m = t.object_count();
+
+	let x = vec![0; n];
+	let y = vec![0; n];
+	let z = vec![0; n];
 
 	for k in 0..t.length() {
-		
+
 	}
 
 	result
