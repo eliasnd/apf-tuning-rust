@@ -1,3 +1,6 @@
+use crate::trace::Event::*;
+use std::collections::HashMap;
+
 #[derive(Copy, Clone)]
 pub enum Event {
     Alloc(usize),
@@ -28,6 +31,20 @@ impl Trace {
 
     pub fn get(&self, index: usize) -> Event {
         self.accesses[index]
+    }
+
+    pub fn object_count(&self) -> usize {   // This is dumb
+        let mut seen = HashMap::new();
+
+        for i in 0..self.length() {
+            match &self.get(i) {
+                Alloc(s) => { if !seen.contains_key(s) { seen.insert(s.clone(), true); } },
+                Free(s) => { if !seen.contains_key(s) { seen.insert(s.clone(), true); } }
+            };
+            
+        }
+
+        seen.len()
     }
 
     pub fn sub(&self, start: usize, end: usize) -> Trace {

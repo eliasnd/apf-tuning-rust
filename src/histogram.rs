@@ -25,4 +25,9 @@ impl Histogram {
             None => 0,
         }
     }
+
+    // Returns number of keys
+    pub fn count(&self) -> usize {
+    	self.histogram.len()
+    }
 }
