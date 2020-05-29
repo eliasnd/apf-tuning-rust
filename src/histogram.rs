@@ -34,3 +34,29 @@ impl Histogram {
     	self.histogram.len()
     }
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_increment_add() {
+		let mut h = Histogram::new();
+		h.increment(0);
+		h.increment(1);
+		h.increment(0);
+		h.add(1, 3);
+		assert_eq!(h.get(&0), 2);
+		assert_eq!(h.get(&1), 4);
+	}
+
+	#[test]
+	fn test_count() {
+		let mut h = Histogram::new();
+		h.increment(0);
+		h.increment(1);
+		h.increment(0);
+		h.add(1, 3);
+		assert_eq!(h.count(), 2);
+	}
+}
